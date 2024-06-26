@@ -41,11 +41,11 @@ jobs:
           sudo a2enmod rewrite expires headers ssl
           #sudo a2enmod php8.1 ssl expires headers rewrite proxy proxy_http
           #--------------------
-          extra="\n\n<Directory \"/home/runner/work/web/web\">\n  Options Indexes FollowSymLinks\n  AllowOverride All\n  Require all granted\n</Directory>"
-          #extra="\n\n<Directory \"/home/runner/work/web/web\">\n  Order allow,deny\n  Allow from all\n  Require all granted\n</Directory>"
-          sudo perl -i -p -e "s~DocumentRoot /var/www/html~DocumentRoot /home/runner/work/web/web$extra~g" /etc/apache2/sites-available/*.conf
+          extra="\n\n<Directory \"/home/runner/work/sample-ubuntu-apache/sample-ubuntu-apache\">\n  Options Indexes FollowSymLinks\n  AllowOverride All\n  Require all granted\n</Directory>"
+          #extra="\n\n<Directory \"/home/runner/work/sample-ubuntu-apache/sample-ubuntu-apache\">\n  Order allow,deny\n  Allow from all\n  Require all granted\n</Directory>"
+          sudo perl -i -p -e "s~DocumentRoot /var/www/html~DocumentRoot /home/runner/work/sample-ubuntu-apache/sample-ubuntu-apache$extra~g" /etc/apache2/sites-available/*.conf
           # sudo perl -i -p -e "s~:80~:443~g" /etc/apache2/sites-available/000-default.conf
-          echo -e "\n\n<Directory \"/home/runner/work/web/web\">\n  Options Indexes FollowSymLinks\n  AllowOverride All\n  Require all granted\n</Directory>\nAccessFileName .htaccess\n" > extra.conf
+          echo -e "\n\n<Directory \"/home/runner/work/sample-ubuntu-apache/sample-ubuntu-apache\">\n  Options Indexes FollowSymLinks\n  AllowOverride All\n  Require all granted\n</Directory>\nAccessFileName .htaccess\n" > extra.conf
           cat /etc/apache2/sites-available/000-default.conf extra.conf > all.conf
           sudo mv all.conf /etc/apache2/sites-available/000-default.conf
           cat /etc/apache2/sites-available/default-ssl.conf extra.conf > all.conf
