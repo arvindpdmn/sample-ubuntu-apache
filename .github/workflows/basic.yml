@@ -1,0 +1,92 @@
+name: Validate proper config of Apache web server on Ubuntu 24.04
+on: [push]
+jobs:
+  apache-web-server:
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Inspect environment
+        run: |
+          echo "----------------------------------------------------------"
+          echo Event: ${{ github.event_name }}
+          echo Branch: ${{ github.ref }}
+          echo Repo: ${{ github.repository }}
+          echo "----------------------------------------------------------"
+          echo Current dir: $(pwd)
+          echo "----------------------------------------------------------"
+          echo Username : Groups
+          groups $(whoami)
+          echo "----------------------------------------------------------"
+          uname -a
+          lsb_release -a
+          echo "----------------------------------------------------------"
+          apache2 -v
+          echo "----------------------------------------------------------"
+          php -v
+          echo "----------------------------------------------------------"
+          wget -V
+          echo "----------------------------------------------------------"
+
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Configure Apache server
+        if: ${{ true }}
+        run: |
+          # Apache is already installed, just need to start it
+          # sudo apt update
+          # sudo apt install apache2
+          sudo systemctl start apache2
+          sudo a2enmod rewrite expires headers ssl
+          #sudo a2enmod php8.1 ssl expires headers rewrite proxy proxy_http
+          #--------------------
+          extra="\n\n<Directory \"/home/runner/work/web/web\">\n  Options Indexes FollowSymLinks\n  AllowOverride All\n  Require all granted\n</Directory>"
+          #extra="\n\n<Directory \"/home/runner/work/web/web\">\n  Order allow,deny\n  Allow from all\n  Require all granted\n</Directory>"
+          sudo perl -i -p -e "s~DocumentRoot /var/www/html~DocumentRoot /home/runner/work/web/web$extra~g" /etc/apache2/sites-available/*.conf
+          # sudo perl -i -p -e "s~:80~:443~g" /etc/apache2/sites-available/000-default.conf
+          echo -e "\n\n<Directory \"/home/runner/work/web/web\">\n  Options Indexes FollowSymLinks\n  AllowOverride All\n  Require all granted\n</Directory>\nAccessFileName .htaccess\n" > extra.conf
+          cat /etc/apache2/sites-available/000-default.conf extra.conf > all.conf
+          sudo mv all.conf /etc/apache2/sites-available/000-default.conf
+          cat /etc/apache2/sites-available/default-ssl.conf extra.conf > all.conf
+          sudo mv all.conf /etc/apache2/sites-available/default-ssl.conf
+          rm extra.conf
+          cat /etc/apache2/sites-available/000-default.conf
+          cat /etc/apache2/sites-available/default-ssl.conf
+          find /etc/apache2/sites-available
+          sudo systemctl restart apache2
+          #--------------------
+          sudo ufw enable
+          sudo ufw allow 80
+          sudo ufw allow 443
+          sudo ufw status
+
+      - name: Special setups
+        run: |
+          sudo usermod -g www-data $(whoami)
+          chown -R $(whoami):www-data .
+          chmod -R 777 .
+          ls -l .htaccess
+
+      - name: Basic checks of web server
+        if: ${{ true }}
+        continue-on-error: true
+        env:
+          ua: Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)
+        run: |
+          cd private/tests/
+          wget --no-check-certificate --verbose -O wget.home.https.html https://localhost/
+          wget --no-check-certificate --verbose -O wget.world.https.html https://localhost/world/index.php
+          wget --no-check-certificate --verbose -O image.jpg https://localhost/imgs/chennai-metro.jpg
+
+      - name: Copy PHP error log
+        run: cp /var/log/apache2/error.log phperror.log
+
+      - name: Export results
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: |
+            *.html
+            *.jpg
+            *.log
